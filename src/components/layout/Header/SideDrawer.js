@@ -1,23 +1,67 @@
+import { useState, useEffect } from 'react';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
 import { Link, useLocation } from "react-router-dom";
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
 //import Badge from '@mui/material/Badge';
 //import Stack from '@mui/material/Stack';
 
 const drawerWidth = 220;
 
-//const SideDrawer = ({mainLinks, bridgeLink, presaleLink, moreMenuLinks, comingSoonLink, onClose, open, window, handleClickContracts}) => {
-const SideDrawer = ({mainLinks, presaleLink, privateLink, moreMenuLinks, comingSoonLink, onClose, open, window, handleClickContracts}) => {  const router = useLocation();
+// eslint-disable-next-line no-unused-vars
+const SideDrawer = ({mainLinks, presaleLink, privateLink, moreMenuLinks, comingSoonLink, onClose, open, window, handleClickContracts}) => {
+  const router = useLocation();
   const container = window !== undefined ? () => window().document.body : undefined;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
 
-  const handleClickContractsItem = () => {
-    onClose()
-    handleClickContracts()
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const userStr = localStorage.getItem('user');
+    setIsAuthenticated(!!token);
+    
+    if (userStr) {
+      try {
+        setUserInfo(JSON.parse(userStr));
+      } catch (e) {
+        setUserInfo(null);
+      }
+    } else {
+      setUserInfo(null);
+    }
+  }, [open]);
+
+  const getUserInitials = () => {
+    if (!userInfo) return 'U';
+    if (userInfo.name) {
+      const names = userInfo.name.split(' ');
+      if (names.length >= 2) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+      }
+      return userInfo.name[0].toUpperCase();
+    }
+    if (userInfo.email) {
+      return userInfo.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setUserInfo(null);
+    onClose();
+    document.location.href = '/';
   }
 
   return ( 
@@ -114,6 +158,72 @@ const SideDrawer = ({mainLinks, presaleLink, privateLink, moreMenuLinks, comingS
           ))}
         </List>
         <Divider light />
+        <List component="nav" dense>
+          {isAuthenticated ? (
+            <>
+              {/* User Info Section */}
+              <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar 
+                  sx={{ 
+                    width: 40, 
+                    height: 40, 
+                    bgcolor: 'primary.main',
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}
+                >
+                  {getUserInitials()}
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" noWrap sx={{ fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {userInfo?.name ? userInfo.name : (userInfo?.email ? userInfo.email.split('@')[0] : '')}
+                  </Typography>
+                  {userInfo?.email && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {userInfo.email}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              <Divider light />
+              {/* Logout Button */}
+              <ListItemButton
+                onClick={handleLogout}
+                sx={{
+                  color: 'error.main',
+                  '&:hover': {
+                    backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </>
+          ) : (
+            <ListItemButton
+              component={Link}
+              to="/signin"
+              onClick={onClose}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: '#fff',
+                borderRadius: 1,
+                mx: 1,
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                <LoginIcon />
+              </ListItemIcon>
+              <ListItemText primary="Login" />
+            </ListItemButton>
+          )}
+        </List>
 
       </Box>
     </Drawer>

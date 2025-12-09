@@ -321,15 +321,27 @@ userController.SignIn = async (req, res, next) => {
       );
     }
 
-    // Find user
-    const user = await userSchema.findOne({ email });
+    // Find user (with timeout handling)
+    let user;
+    try {
+      user = await userSchema.findOne({ email });
+    } catch (dbError) {
+      console.log(" Database error during signin:", dbError.message);
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.SERVICE_UNAVAILABLE,
+        null,
+        { server: "Database connection error. Please try again later." },
+        "Service temporarily unavailable"
+      );
+    }
     if (!user) {
       return otherHelper.sendResponse(
         res,
-        httpStatus.UNAUTHORIZED,
+        httpStatus.NOT_FOUND,
         null,
-        { email: "Invalid email or password" },
-        "Authentication failed"
+        { email: "No account found with this email. Please sign up first." },
+        "User not found"
       );
     }
 

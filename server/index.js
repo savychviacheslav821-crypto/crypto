@@ -6,6 +6,7 @@
 require("dotenv").config();
 const http = require("http");
 const app = require("./app");
+const { connectDatabase } = require("./helper/database.helper");
 const port = process.env.PORT || 4000;
 const env = process.env.ENV || "Development";
 const server = http.createServer(app);
@@ -19,6 +20,11 @@ server.listen(port, async () => {
   console.log("| Environment  : " + env);
   console.log("| Port         : " + port);
   console.log("| Date         : " + data.toJSON().split("T").join(" "));
+  console.log("|--------------------------------------------");
+  
+  // Connect to MongoDB
+  await connectDatabase();
+  
   console.log("|--------------------------------------------");
   console.log("| Server is running successfully! ");
 });

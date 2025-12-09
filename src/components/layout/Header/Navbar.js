@@ -1,30 +1,11 @@
-import { useState, Fragment } from 'react';
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { Fragment } from 'react';
+import { NavLink } from "react-router-dom";
 import Stack from '@mui/material/Stack';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import Badge from '@mui/material/Badge';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import Button from '@mui/material/Button';
 
-//const Navbar = ({mainLinks, presaleLink, bridgeLink, moreMenuLinks, comingSoonLink, handleClickContracts}) => {
-  const Navbar = ({mainLinks, presaleLink, privateLink, moreMenuLinks, comingSoonLink, handleClickContracts}) => {
-  const { pathname } = useLocation();
-  const [anchorMoreEl, setAnchorMoreEl] = useState(null);
-  const openMoreMenu = Boolean(anchorMoreEl);
-
-  const handleClickMoreMenu = (event) => {
-    setAnchorMoreEl(event.currentTarget);
-  };
-
-  const handleCloseMoreMenu = () => {
-    setAnchorMoreEl(null);
-  };
-
-  const handleClickContractsItem = () => {
-    handleCloseMoreMenu()
-    handleClickContracts()
-  }
+// eslint-disable-next-line no-unused-vars
+const Navbar = ({mainLinks, presaleLink, privateLink, moreMenuLinks, comingSoonLink, handleClickContracts}) => {
 
   return (
     <Fragment>

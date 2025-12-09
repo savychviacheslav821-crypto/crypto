@@ -12,13 +12,22 @@ import {
   CircularProgress,
   Paper,
   Divider,
+  Snackbar,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Phone, Person } from '@mui/icons-material';
 import { useWeb3React } from '@web3-react/core';
 import axios from 'axios';
 import { useWalletConnector, setNet } from '../../components/account/WalletConnector';
 
-const API_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:4000';
+// Ensure proper API URL
+const getApiUrl = () => {
+  const envUrl = process.env.REACT_APP_SERVER_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl;
+  }
+  return 'http://localhost:4000';
+};
+const API_URL = getApiUrl();
 
 const SignUp = () => {
   const history = useHistory();
@@ -36,6 +45,7 @@ const SignUp = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [walletConnected, setWalletConnected] = useState(!!account);
 
   useEffect(() => {
@@ -99,23 +109,84 @@ const SignUp = () => {
         ...(account && { wallet: account }),
       };
 
-      const response = await axios.post(`${API_URL}/api/user/signup`, payload);
+      const url = `${API_URL}/api/user/signup`;
+      const response = await axios.post(url, payload, {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (response.data.success) {
-        // Store token and user data
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      // Handle both 200 and 201 status codes as success
+      if (response.status === 200 || response.status === 201) {
+        // Check if response has success flag or just assume success on 200/201
+        const responseData = response.data;
         
-        // Redirect to home or dashboard
-        history.push('/');
-        window.location.reload();
+        if (responseData.success !== false) {
+          // Store token and user data
+          const token = responseData.token || responseData.data?.token;
+          const user = responseData.data?.user || responseData.user;
+          
+          if (token) {
+            localStorage.setItem('authToken', token);
+          }
+          if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+          
+          // Show success message
+          setSuccess(true);
+          setLoading(false);
+          
+          // Redirect to sign in page after 2 seconds
+          setTimeout(() => {
+            history.push('/signin');
+          }, 2000);
+          return;
+        }
       }
+      
+      // If we get here, something unexpected happened
+      setError('Sign up completed but there was an issue. Please try signing in.');
     } catch (err) {
-      setError(
-        err.response?.data?.errors
-          ? Object.values(err.response.data.errors)[0]
-          : err.response?.data?.msg || 'Sign up failed. Please try again.'
-      );
+      console.log('Sign up error:', err);
+      console.log('Response:', err.response);
+      
+      // Show user-friendly error messages based on status code
+      let errorMessage;
+      const status = err.response?.status;
+      
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. The server is taking too long to respond.';
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        errorMessage = 'Unable to connect to server. Please check if the server is running on port 4000.';
+      } else if (status === 409) {
+        // User already exists
+        errorMessage = 'An account with this email already exists. Please sign in instead.';
+      } else if (status === 400) {
+        // Validation error - try to get specific message
+        const data = err.response?.data;
+        if (data?.errors && typeof data.errors === 'object') {
+          const errorValues = Object.values(data.errors);
+          if (errorValues.length > 0 && typeof errorValues[0] === 'string' && errorValues[0].length > 3) {
+            errorMessage = errorValues[0];
+          } else {
+            errorMessage = 'Please check your input fields and try again.';
+          }
+        } else if (data?.msg && typeof data.msg === 'string' && data.msg.length > 3) {
+          errorMessage = data.msg;
+        } else {
+          errorMessage = 'Invalid information. Please check your input and try again.';
+        }
+      } else if (status === 503) {
+        errorMessage = 'Database is temporarily unavailable. Please try again later.';
+      } else if (status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else {
+        errorMessage = 'Sign up failed. Please try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -166,6 +237,21 @@ const SignUp = () => {
               {error}
             </Alert>
           )}
+
+          <Snackbar
+            open={success}
+            autoHideDuration={2000}
+            onClose={() => setSuccess(false)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert 
+              severity="success" 
+              sx={{ width: '100%' }}
+              onClose={() => setSuccess(false)}
+            >
+              Account created successfully! Redirecting to sign in...
+            </Alert>
+          </Snackbar>
 
           <Box component="form" onSubmit={handleSubmit}>
             <TextField

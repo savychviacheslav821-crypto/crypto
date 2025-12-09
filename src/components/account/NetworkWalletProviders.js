@@ -11,7 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import { EthereumLogo, BinanceLogo } from "../ui/NetworkLogos";
+import { BinanceLogo } from "../ui/NetworkLogos";
 import { MetamaskLogo, WalletConnectLogo } from "../ui/WalletLogos";
 import Avatar from '@mui/material/Avatar';
 import Badge from '@mui/material/Badge';

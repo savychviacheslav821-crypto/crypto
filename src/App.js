@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Switch, Route, Redirect } from "react-router-dom";
 import { useWeb3React } from '@web3-react/core';
 import ERC20Balance from "components/ERC20Balance";
-import Home from "containers/home";
 import About from "containers/about";
 import Gallery from "containers/gallery";
 import Transactions from "containers/transactions";
@@ -17,7 +16,6 @@ import PrivateSale from "containers/private-sale";
 import Mint from "containers/mint";
 import Stake from "containers/stake";
 import { SignIn, SignUp } from "containers/auth";
-import { checkServerHealth } from "./helpers/serverCheck";
 
 const App = () => {
   const { library, account } = useWeb3React();
@@ -30,15 +28,9 @@ const App = () => {
   }, [library, account]);
 
   useEffect(() => {
-    const verifyServer = async () => {
-      const isHealthy = await checkServerHealth();
-      if (!isHealthy) {
-        alert('Server is not running. Please start the server first.');
-        return;
-      }
-      setServerReady(true);
-    };
-    verifyServer();
+    // Always allow app to load - server health check is non-blocking
+    // Actual API calls will show proper errors if server is down
+    setServerReady(true);
   }, []);
 
   if (!serverReady) {

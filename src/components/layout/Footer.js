@@ -1,20 +1,12 @@
 import Typography from '@mui/material/Typography';
-//import GitHubIcon from '@mui/icons-material/GitHub';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Container from '@mui/material/Container';
 import EmailIcon from '@mui/icons-material/Email';
-//import RedditIcon from '@mui/icons-material/Reddit';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import FacebookIcon from '@mui/icons-material/Facebook';
-//import InstagramIcon from '@mui/icons-material/Instagram';
-import MediumIcon from '../ui/icons/Medium'
-import DiscordIcon from '../ui/icons/Discord'
-import YoutubeIcon from '@mui/icons-material/YouTube';
-import certik from "../../assets/images/partners/certik.svg";
-import fairyproof from "../../assets/images/partners/fairyproof.png";
 
 const partners = [
   // {

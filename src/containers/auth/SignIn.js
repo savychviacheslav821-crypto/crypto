@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
   Box,
@@ -11,38 +11,32 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Divider,
+  Snackbar,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Email, Lock, Phone } from '@mui/icons-material';
-import { useWeb3React } from '@web3-react/core';
+import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
-import { useWalletConnector, setNet } from '../../components/account/WalletConnector';
 
-const API_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:4000';
+// Ensure proper API URL
+const getApiUrl = () => {
+  const envUrl = process.env.REACT_APP_SERVER_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl;
+  }
+  return 'http://localhost:4000';
+};
+const API_URL = getApiUrl();
 
 const SignIn = () => {
   const history = useHistory();
-  const { account } = useWeb3React();
-  const { loginMetamask, loginWalletConnect } = useWalletConnector();
   
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    phone: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [walletConnected, setWalletConnected] = useState(!!account);
-
-  useEffect(() => {
-    // Initialize network (default to network 0)
-    setNet(0);
-  }, []);
-
-  useEffect(() => {
-    setWalletConnected(!!account);
-  }, [account]);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -50,19 +44,6 @@ const SignIn = () => {
       [e.target.name]: e.target.value,
     });
     setError('');
-  };
-
-  const handleConnectWallet = async (type) => {
-    try {
-      if (type === 'metamask') {
-        await loginMetamask();
-      } else if (type === 'walletconnect') {
-        await loginWalletConnect();
-      }
-      setWalletConnected(true);
-    } catch (err) {
-      setError('Failed to connect wallet. Please try again.');
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -74,27 +55,72 @@ const SignIn = () => {
       const payload = {
         email: formData.email,
         password: formData.password,
-        ...(formData.phone && { phone: formData.phone }),
-        ...(account && { wallet: account }),
       };
 
-      const response = await axios.post(`${API_URL}/api/user/signin`, payload);
+      const url = `${API_URL}/api/user/signin`;
+      const response = await axios.post(url, payload, {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (response.data.success) {
-        // Store token and user data
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      // Handle 200 status code as success
+      if (response.status === 200) {
+        const responseData = response.data;
         
-        // Redirect to home or dashboard
-        history.push('/');
-        window.location.reload();
+        // Check if response has success flag or just assume success on 200
+        if (responseData.success !== false) {
+          // Store token and user data
+          const token = responseData.token || responseData.data?.token;
+          const user = responseData.data?.user || responseData.user;
+          
+          if (token) {
+            localStorage.setItem('authToken', token);
+          }
+          if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+          
+          // Show success message
+          setSuccess(true);
+          setLoading(false);
+          
+          // Trigger custom event to update header
+          window.dispatchEvent(new Event('userLogin'));
+          
+          // Redirect to home after 1.5 seconds
+          setTimeout(() => {
+            history.push('/');
+          }, 1500);
+          return;
+        }
       }
+      
+      // If we get here, something unexpected happened
+      setError('Sign in completed but there was an issue. Please try again.');
     } catch (err) {
-      setError(
-        err.response?.data?.errors
-          ? Object.values(err.response.data.errors)[0]
-          : err.response?.data?.msg || 'Sign in failed. Please check your credentials.'
-      );
+      // Always show user-friendly error messages based on status code
+      let errorMessage;
+      const status = err.response?.status;
+      
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. The server is taking too long to respond.';
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        errorMessage = 'Unable to connect to server. Please check if the server is running on port 4000.';
+      } else if (status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (status === 404) {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (status === 503) {
+        errorMessage = 'Database is temporarily unavailable. Please try again later.';
+      } else if (status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else {
+        errorMessage = 'Sign in failed. Please check your credentials.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -111,7 +137,7 @@ const SignIn = () => {
         padding: 3,
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth="xs">
         <Paper
           elevation={24}
           sx={{
@@ -141,10 +167,52 @@ const SignIn = () => {
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-              {error}
+            <Alert 
+              severity="warning"
+              sx={{ mb: 3 }} 
+              onClose={() => setError('')}
+            >
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+                  {error}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Don't have an account yet? Sign up now to get started!
+                </Typography>
+                <Button
+                  component={Link}
+                  to="/signup"
+                  variant="contained"
+                  size="small"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                    },
+                  }}
+                >
+                  Sign Up Now
+                </Button>
+              </Box>
             </Alert>
           )}
+
+          <Snackbar
+            open={success}
+            autoHideDuration={1500}
+            onClose={() => setSuccess(false)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert 
+              severity="success" 
+              sx={{ width: '100%' }}
+              onClose={() => setSuccess(false)}
+            >
+              Login successful! Redirecting...
+            </Alert>
+          </Snackbar>
 
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
@@ -217,92 +285,13 @@ const SignIn = () => {
               }}
             />
 
-            <TextField
-              fullWidth
-              label="Phone Number (Optional)"
-              name="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={handleChange}
-              margin="normal"
-              variant="outlined"
-              placeholder="+1 (555) 123-4567"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Phone color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  '&:hover fieldset': {
-                    borderColor: '#667eea',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#667eea',
-                  },
-                },
-              }}
-            />
-
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Connect Wallet (Optional)
-              </Typography>
-            </Divider>
-
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Button
-                fullWidth
-                variant={walletConnected && account ? 'contained' : 'outlined'}
-                onClick={() => handleConnectWallet('metamask')}
-                disabled={loading}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  py: 1.5,
-                  ...(walletConnected && account
-                    ? {
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
-                        },
-                      }
-                    : {}),
-                }}
-              >
-                {walletConnected && account ? 'MetaMask Connected' : 'Connect MetaMask'}
-              </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={() => handleConnectWallet('walletconnect')}
-                disabled={loading}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  py: 1.5,
-                }}
-              >
-                WalletConnect
-              </Button>
-            </Box>
-
-            {account && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                Wallet connected: {account.slice(0, 6)}...{account.slice(-4)}
-              </Alert>
-            )}
-
             <Button
               type="submit"
               fullWidth
               variant="contained"
               disabled={loading}
               sx={{
-                mt: 2,
+                mt: 3,
                 mb: 2,
                 py: 1.5,
                 borderRadius: 2,
@@ -341,4 +330,3 @@ const SignIn = () => {
 };
 
 export default SignIn;
-
