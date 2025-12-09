@@ -8,6 +8,14 @@ const userSchema = new schema(
     },
     email: {
       type: String,
+      unique: true,
+      sparse: true,
+    },
+    password: {
+      type: String,
+    },
+    phone: {
+      type: String,
     },
     image: {
       type: String,

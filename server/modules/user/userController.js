@@ -3,6 +3,10 @@ const walletSchema = require("../wallet/walletSchema");
 const historySchema = require("../history/historySchema");
 const httpStatus = require("http-status");
 const otherHelper = require("../../helper/others.helper");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { getSetting } = require("../../helper/settings.helper");
+const Validator = require("validator");
 const userController = {};
 
 userController.Register = async (req, res, next) => {
@@ -189,4 +193,201 @@ userController.Search = async (res, req, next) => {
     next(err);
   }
 };
+
+userController.SignUp = async (req, res, next) => {
+  try {
+    const { email, password, phone, wallet, name } = req.body;
+
+    // Validation
+    if (!email || !Validator.isEmail(email)) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.BAD_REQUEST,
+        null,
+        { email: "Please provide a valid email address" },
+        "Validation error"
+      );
+    }
+
+    if (!password || password.length < 6) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.BAD_REQUEST,
+        null,
+        { password: "Password must be at least 6 characters long" },
+        "Validation error"
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await userSchema.findOne({ email });
+    if (existingUser) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.CONFLICT,
+        null,
+        { email: "User with this email already exists" },
+        "User already exists"
+      );
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Parse phone number if provided
+    let parsedPhone = null;
+    if (phone) {
+      const phoneResult = otherHelper.parsePhoneNo(phone, "US");
+      if (phoneResult.status) {
+        parsedPhone = phoneResult.data;
+      }
+    }
+
+    // Create new user
+    const newUser = new userSchema({
+      email,
+      password: hashedPassword,
+      phone: parsedPhone,
+      name: name || email.split("@")[0],
+    });
+    await newUser.save();
+
+    // Create wallet if provided
+    if (wallet) {
+      const existingWallet = await walletSchema.findOne({ wallet });
+      if (!existingWallet) {
+        const newWallet = new walletSchema({
+          wallet: wallet,
+          user: newUser._id,
+        });
+        await newWallet.save();
+      }
+    }
+
+    // Generate JWT token
+    const secretKey = await getSetting("auth", "token", "secret_key") || "your-secret-key";
+    const token = jwt.sign({ id: newUser._id, email: newUser.email }, secretKey, {
+      expiresIn: "7d",
+    });
+
+    // Return user data without password
+    const userData = await userSchema.findById(newUser._id).select("-password");
+
+    return otherHelper.sendResponse(
+      res,
+      httpStatus.CREATED,
+      { user: userData, token },
+      null,
+      "User registered successfully",
+      token
+    );
+  } catch (err) {
+    if (err.code === 11000) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.CONFLICT,
+        null,
+        { email: "User with this email already exists" },
+        "User already exists"
+      );
+    }
+    next(err);
+  }
+};
+
+userController.SignIn = async (req, res, next) => {
+  try {
+    const { email, password, wallet } = req.body;
+
+    // Validation
+    if (!email || !Validator.isEmail(email)) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.BAD_REQUEST,
+        null,
+        { email: "Please provide a valid email address" },
+        "Validation error"
+      );
+    }
+
+    if (!password) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.BAD_REQUEST,
+        null,
+        { password: "Password is required" },
+        "Validation error"
+      );
+    }
+
+    // Find user
+    const user = await userSchema.findOne({ email });
+    if (!user) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.UNAUTHORIZED,
+        null,
+        { email: "Invalid email or password" },
+        "Authentication failed"
+      );
+    }
+
+    // Check password
+    if (!user.password) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.UNAUTHORIZED,
+        null,
+        { email: "Invalid email or password" },
+        "Authentication failed"
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return otherHelper.sendResponse(
+        res,
+        httpStatus.UNAUTHORIZED,
+        null,
+        { password: "Invalid email or password" },
+        "Authentication failed"
+      );
+    }
+
+    // Update wallet if provided
+    if (wallet) {
+      const existingWallet = await walletSchema.findOne({ wallet });
+      if (!existingWallet) {
+        const newWallet = new walletSchema({
+          wallet: wallet,
+          user: user._id,
+        });
+        await newWallet.save();
+      }
+    }
+
+    // Generate JWT token
+    const secretKey = await getSetting("auth", "token", "secret_key") || "your-secret-key";
+    const token = jwt.sign({ id: user._id, email: user.email }, secretKey, {
+      expiresIn: "7d",
+    });
+
+    // Return user data without password
+    const userData = await userSchema.findById(user._id).select("-password");
+    const walletData = await walletSchema.find({ user: user._id });
+
+    return otherHelper.sendResponse(
+      res,
+      httpStatus.OK,
+      { user: userData, wallets: walletData, token },
+      null,
+      "Login successful",
+      token
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = userController;

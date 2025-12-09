@@ -57,4 +57,18 @@ router.get("/total-count", userModule.GetTotalUserCount);
  */
 router.get("/featured-users", userModule.GetFeaturedUsers);
 
+/**
+ * @route POST api/user/signup
+ * @description Sign up new user
+ * @access Public
+ */
+router.post("/signup", userModule.SignUp);
+
+/**
+ * @route POST api/user/signin
+ * @description Sign in user
+ * @access Public
+ */
+router.post("/signin", userModule.SignIn);
+
 module.exports = router;

@@ -16,6 +16,7 @@ import Presale from "containers/pre-sale";
 import PrivateSale from "containers/private-sale";
 import Mint from "containers/mint";
 import Stake from "containers/stake";
+import { SignIn, SignUp } from "containers/auth";
 import { checkServerHealth } from "./helpers/serverCheck";
 
 const App = () => {
@@ -73,6 +74,8 @@ const App = () => {
           <Route exact path="/private-sale" component={PrivateSale} />
           <Route exact path="/mint" component={Mint} />
           <Route exact path="/stake" component={Stake} />
+          <Route exact path="/signin" component={SignIn} />
+          <Route exact path="/signup" component={SignUp} />
           <Route exact path="/nonauthenticated">
             <>Please login using the "Authenticate" button</>
           </Route>
