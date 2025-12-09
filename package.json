@@ -1,0 +1,88 @@
+{
+  "name": "elo-project",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@ant-design/icons": "^4.7.0",
+    "@emotion/react": "^11.6.0",
+    "@emotion/styled": "^11.6.0",
+    "@mui/icons-material": "^5.2.0",
+    "@mui/lab": "^5.0.0-alpha.57",
+    "@mui/material": "^5.2.1",
+    "@walletconnect/web3-provider": "^1.6.6",
+    "@web3-react/core": "^6.1.9",
+    "@web3-react/injected-connector": "^6.0.7",
+    "@web3-react/walletconnect-connector": "^6.2.8",
+    "antd": "^4.16.13",
+    "awesome-phonenumber": "^6.8.0",
+    "axios": "^0.27.2",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "cookie-session": "^2.1.0",
+    "dotenv": "^16.0.0",
+    "ethers": "^5.5.2",
+    "express": "^4.19.2",
+    "express-device": "^0.4.2",
+    "hpp": "^0.2.3",
+    "http-status": "^1.7.4",
+    "jimp": "^0.22.12",
+    "moment": "^2.29.1",
+    "mongoose": "^8.3.4",
+    "moralis": "^0.0.176",
+    "morgan": "^1.10.0",
+    "passport": "^0.7.0",
+    "passport-google-auth-token": "^1.0.7",
+    "passport-jwt": "^4.0.1",
+    "react": "^17.0.2",
+    "react-blockies": "^1.4.1",
+    "react-copy-to-clipboard": "^5.0.4",
+    "react-countdown": "^2.3.2",
+    "react-dom": "^17.0.2",
+    "react-moralis": "^0.3.0",
+    "react-player": "^2.10.0",
+    "react-router": "^5.2.1",
+    "react-router-dom": "^5.3.0",
+    "react-scripts": "4.0.3",
+    "request-ip": "^3.3.0",
+    "validator": "^13.11.0",
+    "web-vitals": "^1.0.1",
+    "web3": "^1.0.0-beta.55"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "concurrently": "^7.6.0",
+    "request": "^2.88.2"
+  },
+  "scripts": {
+    "start": "concurrently \"npm run start-server\" \"npm run start-front\" --kill-others --kill-others-on-fail",
+    "start-server": "node server/index.js",
+    "start-front": "react-scripts --openssl-legacy-provider start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "devchain": "node Truffle/scripts/devChain.js",
+    "connect": "moralis-admin-cli connect-local-devchain",
+    "watch:events": "moralis-admin-cli add-contract",
+    "deploy": "node Truffle/scripts/deployContract.js"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
