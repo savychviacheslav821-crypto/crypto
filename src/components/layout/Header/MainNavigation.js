@@ -177,12 +177,16 @@ const MainNavigation = () => {
               privateLink={privateLink}
               handleClickContracts={handleContractsDialogToggle} />
           </Box>
-          <Box sx={{marginLeft: "auto"}}>
-            <Networks />
-          </Box>
-          <Box sx={{ml: 1}}>
-            <Account />
-          </Box>
+          {isAuthenticated && (
+            <>
+              <Box sx={{marginLeft: "auto"}}>
+                <Networks />
+              </Box>
+              <Box sx={{ml: 1}}>
+                <Account />
+              </Box>
+            </>
+          )}
           <Box sx={{ml: 2, display: 'flex', alignItems: 'center', gap: 2}}>
             {isAuthenticated && location.pathname !== '/signin' && location.pathname !== '/signup' ? (
               <>
